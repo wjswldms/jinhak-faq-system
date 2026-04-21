@@ -31,27 +31,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--surface);min-height:
 .tab.active{background:var(--white);color:var(--sky-text);font-weight:500;box-shadow:0 1px 4px rgba(123,191,232,.18)}
 .panel{display:none}.panel.active{display:block}
 
-/* 연동 설정 배너 */
-.setup-banner{background:var(--yellow);border:1px solid var(--yellow-mid);border-radius:var(--radius-lg);padding:1.1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:flex-start;gap:12px}
-.setup-banner.connected{background:var(--green-bg);border-color:var(--green-border)}
-.setup-banner.error{background:var(--red-bg);border-color:var(--red-border)}
-.setup-dot{width:8px;height:8px;border-radius:50%;background:var(--yellow-text);flex-shrink:0;margin-top:4px}
-.setup-banner.connected .setup-dot{background:var(--green-text)}
-.setup-banner.error .setup-dot{background:var(--red-text)}
-.setup-body{flex:1}
-.setup-title{font-size:13px;font-weight:500;color:var(--yellow-text);margin-bottom:4px}
-.setup-banner.connected .setup-title{color:var(--green-text)}
-.setup-banner.error .setup-title{color:var(--red-text)}
-.setup-desc{font-size:12px;color:var(--ink2);line-height:1.6}
-.setup-input-row{display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap}
-.setup-input{flex:1;min-width:200px;padding:7px 11px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:12.5px;background:var(--white);color:var(--ink);font-family:'Noto Sans KR',sans-serif;outline:none}
-.setup-input:focus{border-color:var(--sky-deep)}
-.btn-connect{padding:7px 16px;background:var(--sky-text);color:#fff;border:none;border-radius:var(--radius-sm);font-size:12.5px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;white-space:nowrap;transition:opacity .13s}
-.btn-connect:hover{opacity:.85}
-.btn-sync{padding:7px 14px;border:1px solid var(--green-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;background:var(--green-bg);color:var(--green-text);font-family:'Noto Sans KR',sans-serif;white-space:nowrap;transition:all .13s}
-.btn-sync:hover{background:#d0f0e0}
-.btn-sync:disabled{opacity:.5;cursor:not-allowed}
-.sync-time{font-size:11px;color:var(--ink3);margin-left:4px}
+/* 상태 표시 */
+.status-bar{display:flex;align-items:center;gap:6px;margin-bottom:1rem;padding:6px 12px;border-radius:20px;width:fit-content;font-size:12px}
+.status-bar.connected{background:var(--green-bg);color:var(--green-text)}
+.status-bar.error{background:var(--red-bg);color:var(--red-text)}
+.status-bar.loading{background:var(--sky);color:var(--sky-text)}
+.status-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+.btn-sync{padding:3px 10px;border:1px solid currentColor;border-radius:10px;font-size:11px;cursor:pointer;background:transparent;color:inherit;font-family:'Noto Sans KR',sans-serif;opacity:.7;transition:opacity .13s;margin-left:4px}
+.btn-sync:hover{opacity:1}
 
 /* 검색 */
 .search-wrap{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:1rem;box-shadow:0 2px 12px rgba(123,191,232,.08)}
@@ -241,17 +228,11 @@ mark{background:var(--yellow-mid);border-radius:2px;padding:0 1px;color:inherit}
     </div>
   </div>
 
-  <!-- 연동 설정 배너 -->
-  <div class="setup-banner" id="setup-banner">
-    <div class="setup-dot"></div>
-    <div class="setup-body">
-      <div class="setup-title" id="setup-title">Google Sheets 연동 필요</div>
-      <div class="setup-desc" id="setup-desc">Apps Script 배포 URL을 입력하면 데이터가 Google Sheets에 자동 저장됩니다.</div>
-      <div class="setup-input-row">
-        <input class="setup-input" id="script-url-input" placeholder="https://script.google.com/macros/s/.../exec" type="url">
-        <button class="btn-connect" onclick="connectSheets()">연결</button>
-      </div>
-    </div>
+  <!-- 상태 표시 -->
+  <div class="status-bar loading" id="status-bar">
+    <span class="status-dot"></span>
+    <span id="status-text">시트 연결 중...</span>
+    <button class="btn-sync" onclick="loadFromSheets()" id="sync-btn" style="display:none">새로고침</button>
   </div>
 
   <!-- 검색 탭 -->
@@ -348,69 +329,52 @@ mark{background:var(--yellow-mid);border-radius:2px;padding:0 1px;color:inherit}
 // ================================================================
 // 설정
 // ================================================================
-const LS_URL  = 'faq_script_url';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwhdld9Wvyn463gRH_IQq1YDlK4gZ8CQ1SO7cgw5zspQeu0RLlPzl3FNNAvDHlWnxYwwA/exec';
 const LS_DATA = 'faq_v2';
 const LS_CATS = 'faq_cats_v2';
 
 let items = [], categories = [], activeCategory = '전체';
 let chatHistory = [], isLoading = false, chartPeriod = 6;
 let editingCatIdx = -1;
-let scriptUrl = '';
 let saveTimer = null;
 
 // ================================================================
 // Google Sheets 연동
 // ================================================================
-function connectSheets() {
-  const url = document.getElementById('script-url-input').value.trim();
-  if (!url || !url.includes('script.google.com')) {
-    alert('올바른 Apps Script URL을 입력해주세요.');
-    return;
-  }
-  scriptUrl = url;
-  localStorage.setItem(LS_URL, url);
-  loadFromSheets();
-}
-
 async function loadFromSheets() {
-  if (!scriptUrl) return;
-  showLoading('Google Sheets에서 불러오는 중...');
+  updateStatus('loading', '시트 연결 중...');
   try {
-    const res = await fetch(`${scriptUrl}?action=getAll`);
+    const res = await fetch(`${SCRIPT_URL}?action=getAll`);
     const json = await res.json();
     if (json.ok) {
-      items = json.data.items || [];
+      items = (json.data.items || []).map(normalizeItem);
       categories = json.data.categories || [];
       persistLocal();
-      updateBanner('connected');
+      updateStatus('connected', '시트 연결됨');
       renderFilters();
       renderList();
       populateCategorySelect();
     } else {
-      updateBanner('error', json.error);
+      updateStatus('error', '오류: ' + json.error);
     }
   } catch(e) {
-    updateBanner('error', '연결 실패: ' + e.message);
+    updateStatus('error', '시트 연결 실패');
+    loadLocal();
+    renderFilters(); renderList(); populateCategorySelect();
   } finally {
     hideLoading();
   }
 }
 
 async function saveToSheets() {
-  if (!scriptUrl) return;
-  showLoading('Google Sheets에 저장 중...');
   try {
-    const res = await fetch(scriptUrl, {
+    const res = await fetch(SCRIPT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'saveAll', items, categories })
     });
     const json = await res.json();
-    if (json.ok) {
-      updateSyncTime();
-    } else {
-      console.error('저장 실패:', json.error);
-    }
+    if (!json.ok) console.error('저장 실패:', json.error);
   } catch(e) {
     console.error('저장 오류:', e);
   } finally {
@@ -418,34 +382,34 @@ async function saveToSheets() {
   }
 }
 
-// 변경 시 2초 후 자동 저장 (debounce)
 function scheduleSave() {
   persistLocal();
-  if (!scriptUrl) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => saveToSheets(), 2000);
 }
 
-function updateBanner(state, errorMsg) {
-  const banner = document.getElementById('setup-banner');
-  const title  = document.getElementById('setup-title');
-  const desc   = document.getElementById('setup-desc');
-  banner.className = 'setup-banner ' + state;
-
-  if (state === 'connected') {
-    title.textContent = 'Google Sheets 연결됨';
-    desc.innerHTML = `데이터가 Google Sheets에 자동 저장됩니다. &nbsp;<button class="btn-sync" onclick="loadFromSheets()">새로고침</button><span class="sync-time" id="sync-time"></span>`;
-    document.querySelector('.setup-input-row').style.display = 'none';
-    updateSyncTime();
-  } else if (state === 'error') {
-    title.textContent = '연결 오류';
-    desc.textContent = errorMsg || '연결에 실패했습니다. URL을 확인해주세요.';
-  }
+function updateStatus(state, text) {
+  const bar = document.getElementById('status-bar');
+  const txt = document.getElementById('status-text');
+  const btn = document.getElementById('sync-btn');
+  bar.className = 'status-bar ' + state;
+  txt.textContent = text;
+  btn.style.display = state === 'connected' ? '' : 'none';
 }
 
-function updateSyncTime() {
-  const el = document.getElementById('sync-time');
-  if (el) el.textContent = '마지막 동기화: ' + new Date().toLocaleTimeString('ko-KR', {hour:'2-digit',minute:'2-digit'});
+// 날짜 정규화: ISO 문자열 → YYYY-MM-DD
+function normalizeDate(d) {
+  if (!d) return '';
+  if (typeof d === 'string' && d.length > 10) return d.slice(0, 10);
+  return String(d).slice(0, 10);
+}
+
+function normalizeItem(item) {
+  return {
+    ...item,
+    created: normalizeDate(item.created),
+    logs: (item.logs || []).map(l => ({ ...l, date: normalizeDate(l.date) }))
+  };
 }
 
 // ================================================================
@@ -585,7 +549,7 @@ function saveItem() {
   const q   = document.getElementById('f-question').value.trim();
   const a   = document.getElementById('f-answer').value.trim();
   const cat = document.getElementById('f-category').value;
-  const date = document.getElementById('f-date').value || new Date().toISOString().slice(0, 10);
+  const date = normalizeDate(document.getElementById('f-date').value) || new Date().toISOString().slice(0, 10);
   const uni = document.getElementById('f-university').value.trim();
   const eid = document.getElementById('edit-id').value;
   if (!q || !a) { alert('문의 내용과 답변을 모두 입력해주세요.'); return; }
@@ -812,21 +776,8 @@ function switchTab(tab) {
 // 초기화
 // ================================================================
 (function init() {
-  // 저장된 URL 불러오기
-  const savedUrl = localStorage.getItem(LS_URL);
-  if (savedUrl) {
-    scriptUrl = savedUrl;
-    document.getElementById('script-url-input').value = savedUrl;
-  }
-
-  // 로컬 데이터 불러오기
   loadLocal();
-
-  // URL이 있으면 Sheets에서 최신 데이터 불러오기, 없으면 로컬 사용
-  if (scriptUrl) {
-    loadFromSheets();
-  }
-
+  loadFromSheets();
   document.getElementById('f-date').value = new Date().toISOString().slice(0, 10);
   renderFilters(); renderList(); populateCategorySelect();
 })();
