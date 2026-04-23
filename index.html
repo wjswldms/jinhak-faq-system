@@ -15,6 +15,7 @@
   --radius:12px;--radius-sm:8px;--radius-lg:16px;
   --green-bg:#E8F8F0;--green-text:#1A7A4A;--green-border:#A8DFC0;
   --red-bg:#FFF0F0;--red-text:#C0392B;--red-border:#F5A0A0;
+  --amber-bg:#FFF8E6;--amber-text:#8A5A00;--amber-border:#F5CC80;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Noto Sans KR',sans-serif;background:var(--surface);min-height:100vh;color:var(--ink)}
@@ -196,6 +197,49 @@ mark{background:var(--yellow-mid);border-radius:2px;padding:0 1px;color:inherit}
 .chat-clr{padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;cursor:pointer;background:var(--white);color:var(--ink2);font-family:'Noto Sans KR',sans-serif}
 .chat-clr:hover{background:var(--sky)}
 
+
+/* 잠금 화면 */
+.lock-screen{position:fixed;inset:0;background:var(--surface);z-index:9999;display:flex;align-items:center;justify-content:center}
+.lock-box{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2.5rem 2rem;width:min(360px,90vw);text-align:center;box-shadow:0 4px 24px rgba(123,191,232,.15)}
+.lock-icon{width:48px;height:48px;background:linear-gradient(135deg,var(--sky-mid),var(--yellow-mid));border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem}
+.lock-title{font-size:17px;font-weight:500;color:var(--ink);margin-bottom:6px}
+.lock-sub{font-size:12.5px;color:var(--ink3);margin-bottom:1.5rem}
+.lock-input{width:100%;padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:16px;text-align:center;letter-spacing:6px;background:var(--white);color:var(--ink);font-family:'DM Sans',sans-serif;outline:none;transition:border .13s}
+.lock-input:focus{border-color:var(--sky-deep);background:var(--sky)}
+.lock-input.error{border-color:var(--red-border);background:var(--red-bg)}
+.lock-btn{width:100%;margin-top:12px;padding:10px;background:var(--sky-text);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;cursor:pointer;font-weight:500;font-family:'Noto Sans KR',sans-serif}
+.lock-btn:hover{opacity:.85}
+.lock-err{font-size:12px;color:var(--red-text);margin-top:8px;height:16px}
+/* 모달 */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:8000;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--white);border-radius:var(--radius-lg);padding:1.75rem;width:min(340px,90vw);border:1px solid var(--border)}
+.modal h3{font-size:15px;font-weight:500;color:var(--ink);margin-bottom:4px}
+.modal p{font-size:12px;color:var(--ink3);margin-bottom:1.25rem}
+.modal input{width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:15px;text-align:center;letter-spacing:5px;font-family:'DM Sans',sans-serif;outline:none;background:var(--white);color:var(--ink);transition:border .13s;margin-bottom:4px}
+.modal input:focus{border-color:var(--sky-deep);background:var(--sky)}
+.modal input.error{border-color:var(--red-border);background:var(--red-bg)}
+.modal-err{font-size:12px;color:var(--red-text);margin-top:4px;height:16px}
+.modal-btns{display:flex;gap:8px;margin-top:1rem;justify-content:flex-end}
+.modal-cancel{padding:8px 16px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;cursor:pointer;background:var(--white);color:var(--ink2);font-family:'Noto Sans KR',sans-serif}
+.modal-ok{padding:8px 20px;background:var(--sky-text);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;font-weight:500;font-family:'Noto Sans KR',sans-serif}
+/* 관리자 */
+.admin-badge{display:none;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:500;background:var(--amber-bg);color:var(--amber-text);border:1px solid var(--amber-border)}
+.admin-badge.visible{display:inline-flex;align-items:center;gap:5px}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.logo{cursor:pointer;user-select:none}
+.logo-icon{transition:transform .1s}
+.logo-icon:active{transform:scale(.92)}
+.tab.admin-only{display:none}
+.tab.admin-only.visible{display:block}
+.btn-sm.admin-action{display:none}
+.btn-sm.admin-action.visible{display:inline-flex}
+.admin-panel{background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:1.25rem}
+.admin-panel h3{font-size:13px;font-weight:500;color:var(--amber-text);margin-bottom:1rem}
+.admin-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn-admin{padding:7px 16px;border:1px solid var(--amber-border);border-radius:var(--radius-sm);font-size:12.5px;cursor:pointer;background:var(--white);color:var(--amber-text);font-family:'Noto Sans KR',sans-serif;transition:all .13s}
+.btn-admin:hover{background:var(--amber-border)}
+
 /* 로딩 */
 .loading-overlay{display:none;position:fixed;inset:0;background:rgba(247,251,255,.8);z-index:999;align-items:center;justify-content:center;flex-direction:column;gap:12px}
 .loading-overlay.show{display:flex}
@@ -213,6 +257,50 @@ mark{background:var(--yellow-mid);border-radius:2px;padding:0 1px;color:inherit}
 </head>
 <body>
 
+
+<!-- 잠금 화면 -->
+<div class="lock-screen" id="lock-screen">
+  <div class="lock-box">
+    <div class="lock-icon">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="4" y="9" width="12" height="9" rx="2" stroke="#1A5F8A" stroke-width="1.5"/><path d="M7 9V6a3 3 0 016 0v3" stroke="#1A5F8A" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </div>
+    <div class="lock-title">문의 관리 시스템</div>
+    <div class="lock-sub">접속 비밀번호를 입력해주세요</div>
+    <input class="lock-input" id="lock-input" type="password" maxlength="10" placeholder="••••" onkeydown="if(event.key==='Enter')checkLock()">
+    <button class="lock-btn" onclick="checkLock()">입장</button>
+    <div class="lock-err" id="lock-err"></div>
+  </div>
+</div>
+
+<!-- 관리자 모달 -->
+<div class="modal-bg" id="admin-modal">
+  <div class="modal">
+    <h3>관리자 모드</h3>
+    <p>관리자 비밀번호를 입력하세요</p>
+    <input id="admin-pw-input" type="password" maxlength="10" placeholder="••••" onkeydown="if(event.key==='Enter')checkAdmin();if(event.key==='Escape')closeAdminModal()">
+    <div class="modal-err" id="admin-err"></div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeAdminModal()">취소</button>
+      <button class="modal-ok" onclick="checkAdmin()">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 비밀번호 변경 모달 -->
+<div class="modal-bg" id="pw-change-modal">
+  <div class="modal">
+    <h3 id="pw-change-title">비밀번호 변경</h3>
+    <p id="pw-change-sub">새 비밀번호를 입력하세요</p>
+    <input id="pw-new" type="password" maxlength="10" placeholder="새 비밀번호" onkeydown="if(event.key==='Enter')document.getElementById('pw-confirm').focus()">
+    <input id="pw-confirm" type="password" maxlength="10" placeholder="새 비밀번호 확인" onkeydown="if(event.key==='Enter')savePwChange()">
+    <div class="modal-err" id="pw-change-err"></div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closePwChange()">취소</button>
+      <button class="modal-ok" onclick="savePwChange()">변경</button>
+    </div>
+  </div>
+</div>
+
 <div class="loading-overlay" id="loading">
   <div class="loading-spinner"></div>
   <div class="loading-text" id="loading-text">저장 중...</div>
@@ -220,7 +308,7 @@ mark{background:var(--yellow-mid);border-radius:2px;padding:0 1px;color:inherit}
 
 <div class="app">
   <div class="topbar">
-    <div class="logo">
+    <div class="logo" onclick="handleLogoClick()">
       <div class="logo-icon">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h10" stroke="#1A5F8A" stroke-width="1.5" stroke-linecap="round"/></svg>
       </div>
@@ -229,12 +317,14 @@ mark{background:var(--yellow-mid);border-radius:2px;padding:0 1px;color:inherit}
         <div class="logo-sub">Google Sheets 연동</div>
       </div>
     </div>
-    <div class="tabs">
+    <div class="topbar-right">
+      <div class="admin-badge" id="admin-badge">★ 관리자</div>
+      <div class="tabs">
       <button class="tab active" onclick="switchTab('search')">검색</button>
       <button class="tab" onclick="switchTab('add')">문의 등록</button>
-      <button class="tab" onclick="switchTab('chat')">AI 도우미</button>
-      <button class="tab" onclick="switchTab('cats')">카테고리</button>
+      <button class="tab admin-only" id="tab-cats" onclick="switchTab('cats')">카테고리</button>
       <button class="tab" onclick="switchTab('stats')">통계</button>
+    </div>
     </div>
   </div>
 
@@ -282,26 +372,19 @@ mark{background:var(--yellow-mid);border-radius:2px;padding:0 1px;color:inherit}
     </div>
   </div>
 
-  <!-- AI 채팅 탭 -->
-  <div class="panel" id="panel-chat">
-    <div class="chat-wrap">
-      <div class="chat-notice">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#7A5800" stroke-width="1.2"/><path d="M7 6v4M7 4.5v.5" stroke="#7A5800" stroke-width="1.2" stroke-linecap="round"/></svg>
-        등록된 문의 DB를 바탕으로 AI가 예시 답변을 작성합니다. 관리자 응대 참고용으로 활용하세요.
-      </div>
-      <div class="chat-msgs" id="chat-msgs">
-        <div class="msg ai"><div class="msg-av">AI</div><div class="msg-bub">안녕하세요. 고객 문의 내용을 입력하시면 등록된 DB를 참고해 예시 답변을 드립니다.</div></div>
-      </div>
-      <div class="chat-input-row">
-        <button class="chat-clr" onclick="clearChat()">초기화</button>
-        <input type="text" id="chat-input" placeholder="고객 문의 내용을 입력하세요..." onkeydown="if(event.key==='Enter')sendChat()">
-        <button class="chat-send" id="chat-send-btn" onclick="sendChat()">전송</button>
-      </div>
+  <!-- 카테고리 탭 -->
+  <div class="panel" id="panel-cats">
+  <!-- 관리자 패널 -->
+  <div class="admin-panel">
+    <h3>★ 관리자 전용</h3>
+    <div class="admin-actions">
+      <button class="btn-admin" onclick="exportCSV()">CSV 내보내기</button>
+      <button class="btn-admin" onclick="openPwChange('access')">접속 비밀번호 변경</button>
+      <button class="btn-admin" onclick="openPwChange('admin')">관리자 비밀번호 변경</button>
+      <button class="btn-admin" onclick="logoutAdmin()">관리자 모드 종료</button>
     </div>
   </div>
 
-  <!-- 카테고리 탭 -->
-  <div class="panel" id="panel-cats">
     <div class="form-card">
       <h2>카테고리 관리</h2>
       <p class="edit-hint">카테고리명을 클릭하거나 수정 버튼을 눌러 이름을 변경할 수 있습니다.</p>
@@ -349,10 +432,121 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwhdld9Wvyn463gRH_IQ
 const LS_DATA = 'faq_v2';
 const LS_CATS = 'faq_cats_v2';
 
+const LS_ACCESS_PW = 'faq_access_pw';
+const LS_ADMIN_PW  = 'faq_admin_pw';
 let items = [], categories = [], activeCategories = new Set();
+let isAdmin = false;
+let logoClickCount = 0, logoClickTimer = null, pwChangeTarget = '';
 let chatHistory = [], isLoading = false, chartPeriod = 6;
 let editingCatIdx = -1;
 let saveTimer = null;
+
+
+// ================================================================
+// 비밀번호 관리
+// ================================================================
+function getAccessPw() { return localStorage.getItem(LS_ACCESS_PW) || '1234'; }
+function getAdminPw()  { return localStorage.getItem(LS_ADMIN_PW)  || '0818'; }
+
+function checkLock() {
+  const val = document.getElementById('lock-input').value;
+  const inp = document.getElementById('lock-input');
+  if (val === getAccessPw()) {
+    document.getElementById('lock-screen').style.display = 'none';
+    loadFromSheets();
+  } else {
+    inp.classList.add('error');
+    document.getElementById('lock-err').textContent = '비밀번호가 올바르지 않습니다.';
+    inp.value = '';
+    setTimeout(() => { inp.classList.remove('error'); document.getElementById('lock-err').textContent = ''; }, 1500);
+  }
+}
+document.getElementById('lock-input').addEventListener('input', () => {
+  document.getElementById('lock-input').classList.remove('error');
+  document.getElementById('lock-err').textContent = '';
+});
+
+function handleLogoClick() {
+  logoClickCount++;
+  clearTimeout(logoClickTimer);
+  if (logoClickCount >= 3) {
+    logoClickCount = 0;
+    if (isAdmin) { logoutAdmin(); return; }
+    openAdminModal();
+  } else {
+    logoClickTimer = setTimeout(() => { logoClickCount = 0; }, 800);
+  }
+}
+function openAdminModal() {
+  document.getElementById('admin-modal').classList.add('open');
+  document.getElementById('admin-pw-input').value = '';
+  document.getElementById('admin-err').textContent = '';
+  setTimeout(() => document.getElementById('admin-pw-input').focus(), 100);
+}
+function closeAdminModal() { document.getElementById('admin-modal').classList.remove('open'); }
+function checkAdmin() {
+  const val = document.getElementById('admin-pw-input').value;
+  const inp = document.getElementById('admin-pw-input');
+  if (val === getAdminPw()) { closeAdminModal(); activateAdmin(); }
+  else {
+    inp.classList.add('error');
+    document.getElementById('admin-err').textContent = '비밀번호가 올바르지 않습니다.';
+    inp.value = '';
+    setTimeout(() => { inp.classList.remove('error'); document.getElementById('admin-err').textContent = ''; }, 1500);
+  }
+}
+function activateAdmin() {
+  isAdmin = true;
+  document.getElementById('admin-badge').classList.add('visible');
+  document.getElementById('tab-cats').classList.add('visible');
+  renderList();
+}
+function logoutAdmin() {
+  isAdmin = false;
+  document.getElementById('admin-badge').classList.remove('visible');
+  document.getElementById('tab-cats').classList.remove('visible');
+  const activeName = document.querySelector('.tab.active')?.textContent.trim();
+  if (activeName === '카테고리') switchTab('search');
+  renderList();
+}
+function openPwChange(target) {
+  pwChangeTarget = target;
+  document.getElementById('pw-change-title').textContent = target === 'access' ? '접속 비밀번호 변경' : '관리자 비밀번호 변경';
+  document.getElementById('pw-change-sub').textContent = target === 'access' ? '새 접속 비밀번호를 입력하세요' : '새 관리자 비밀번호를 입력하세요';
+  document.getElementById('pw-new').value = '';
+  document.getElementById('pw-confirm').value = '';
+  document.getElementById('pw-change-err').textContent = '';
+  document.getElementById('pw-change-modal').classList.add('open');
+  setTimeout(() => document.getElementById('pw-new').focus(), 100);
+}
+function closePwChange() { document.getElementById('pw-change-modal').classList.remove('open'); }
+function savePwChange() {
+  const nw = document.getElementById('pw-new').value;
+  const cf = document.getElementById('pw-confirm').value;
+  if (!nw) { document.getElementById('pw-change-err').textContent = '비밀번호를 입력해주세요.'; return; }
+  if (nw !== cf) { document.getElementById('pw-change-err').textContent = '비밀번호가 일치하지 않습니다.'; return; }
+  if (pwChangeTarget === 'access') localStorage.setItem(LS_ACCESS_PW, nw);
+  else localStorage.setItem(LS_ADMIN_PW, nw);
+  closePwChange();
+  alert(`${pwChangeTarget === 'access' ? '접속' : '관리자'} 비밀번호가 변경되었습니다.`);
+}
+
+// ================================================================
+// CSV 내보내기
+// ================================================================
+function exportCSV() {
+  const rows = [['id','문의내용','답변','카테고리','문의건수','최초등록일','문의이력']];
+  items.forEach(i => {
+    const logs = (i.logs || []).map(l => l.date + ' ' + l.university).join(' | ');
+    rows.push([i.id, '"' + (i.question||'').replace(/"/g,'""') + '"', '"' + (i.answer||'').replace(/"/g,'""') + '"',
+      i.category, (i.logs||[]).length, i.created, '"' + logs + '"']);
+  });
+  const csv = '\uFEFF' + rows.map(r => r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+  a.download = '문의데이터_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
 
 // ================================================================
 // Google Sheets 연동
@@ -542,8 +736,7 @@ function renderList() {
           </div>
         </div>
         <div class="card-actions">
-          <button class="btn-sm" onclick="editItem(${i.id})">수정</button>
-          <button class="btn-sm del" onclick="deleteItem(${i.id})">삭제</button>
+          ${isAdmin ? '<button class="btn-sm admin-action visible" onclick="editItem(' + i.id + ')">수정</button><button class="btn-sm del admin-action visible" onclick="deleteItem(' + i.id + ')">삭제</button>' : ''}
         </div>
       </div>
     </div>`;
@@ -570,6 +763,7 @@ function deleteLog(iid, li) {
   if (i && i.logs) { i.logs.splice(li, 1); scheduleSave(); renderList(); }
 }
 function deleteItem(id) {
+  if (!isAdmin) { alert('관리자만 삭제할 수 있습니다.'); return; }
   if (!confirm('이 문의를 삭제하시겠습니까?')) return;
   items = items.filter(i => i.id !== id);
   scheduleSave(); renderFilters(); renderList();
@@ -801,54 +995,10 @@ function renderTimeline() {
 }
 
 // ================================================================
-// AI 채팅
-// ================================================================
-function buildFaqContext() {
-  if (!items.length) return '등록된 문의 데이터가 없습니다.';
-  return items.map((i, idx) => `[${idx + 1}] 카테고리: ${i.category}\n문의: ${i.question}\n답변: ${i.answer}`).join('\n\n');
-}
-async function sendChat() {
-  if (isLoading) return;
-  const inp = document.getElementById('chat-input'); const msg = inp.value.trim(); if (!msg) return;
-  inp.value = ''; isLoading = true; document.getElementById('chat-send-btn').disabled = true;
-  appendMsg('user', msg); chatHistory.push({ role: 'user', content: msg });
-  const tid = 't-' + Date.now(); appendTyping(tid);
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514', max_tokens: 1000,
-        system: `당신은 고객 문의 응대를 돕는 AI 어시스턴트입니다.\n\n=== 문의 DB ===\n${buildFaqContext()}\n================\n\nDB를 참고해 예시 답변을 작성하세요. 없으면 없다고 밝히고, 참고한 항목을 [참고: 항목 N] 형식으로 표기하세요.`,
-        messages: chatHistory
-      })
-    });
-    const data = await res.json(); removeTyping(tid);
-    const txt = data.content?.[0]?.text || '오류가 발생했습니다.';
-    chatHistory.push({ role: 'assistant', content: txt }); appendMsg('ai', txt);
-  } catch(e) { removeTyping(tid); appendMsg('ai', '연결에 실패했습니다.'); }
-  isLoading = false; document.getElementById('chat-send-btn').disabled = false; inp.focus();
-}
-function appendMsg(role, text) {
-  const w = document.getElementById('chat-msgs'); const d = document.createElement('div'); d.className = 'msg ' + role;
-  d.innerHTML = `<div class="msg-av">${role === 'ai' ? 'AI' : '나'}</div><div class="msg-bub">${text.replace(/</g, '&lt;')}</div>`;
-  w.appendChild(d); w.scrollTop = w.scrollHeight;
-}
-function appendTyping(id) {
-  const w = document.getElementById('chat-msgs'); const d = document.createElement('div'); d.className = 'msg ai'; d.id = id;
-  d.innerHTML = `<div class="msg-av">AI</div><div class="msg-bub"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>`;
-  w.appendChild(d); w.scrollTop = w.scrollHeight;
-}
-function removeTyping(id) { const e = document.getElementById(id); if (e) e.remove(); }
-function clearChat() {
-  chatHistory = [];
-  document.getElementById('chat-msgs').innerHTML = `<div class="msg ai"><div class="msg-av">AI</div><div class="msg-bub">안녕하세요. 고객 문의 내용을 입력하시면 등록된 DB를 참고해 예시 답변을 드립니다.</div></div>`;
-}
-
-// ================================================================
 // 탭 전환
 // ================================================================
 function switchTab(tab) {
-  const names = ['search', 'add', 'chat', 'cats', 'stats'];
+  const names = ['search', 'add', 'cats', 'stats'];
   document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', names[i] === tab));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + tab).classList.add('active');
@@ -856,7 +1006,6 @@ function switchTab(tab) {
   if (tab === 'add') { populateCategorySelect([]); if (!document.getElementById('f-date').value) document.getElementById('f-date').value = new Date().toISOString().slice(0, 10); }
   if (tab === 'cats') renderCatManage();
   if (tab === 'stats') renderStats();
-  if (tab === 'chat') setTimeout(() => document.getElementById('chat-input').focus(), 100);
 }
 
 // ================================================================
@@ -864,7 +1013,6 @@ function switchTab(tab) {
 // ================================================================
 (function init() {
   loadLocal();
-  loadFromSheets();
   document.getElementById('f-date').value = new Date().toISOString().slice(0, 10);
   renderFilters(); renderList(); populateCategorySelect([]);
 })();
