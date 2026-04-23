@@ -122,6 +122,16 @@ mark{background:var(--yellow-mid);border-radius:2px;padding:0 1px;color:inherit}
 .add-cat-row input:focus{border-color:var(--sky-deep)}
 .edit-hint{font-size:11px;color:var(--ink3);margin-bottom:12px}
 
+/* 다중 카테고리 선택 */
+.cat-check-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.cat-check-item{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;border:1px solid var(--border2);background:var(--white);cursor:pointer;transition:all .15s;user-select:none;font-size:12.5px;color:var(--ink2)}
+.cat-check-item:hover{border-color:var(--sky-deep);background:var(--sky)}
+.cat-check-item.checked{background:var(--sky-text);color:#fff;border-color:var(--sky-text)}
+.cat-check-item.disabled{opacity:.4;cursor:not-allowed}
+.cat-limit-hint{font-size:11px;color:var(--ink3);margin-top:6px}
+.filter-reset{padding:5px 11px;border-radius:20px;font-size:12px;cursor:pointer;border:1px solid var(--border2);background:var(--white);color:var(--ink3);transition:all .15s;font-family:'Noto Sans KR',sans-serif}
+.filter-reset:hover{background:var(--surface);color:var(--ink2)}
+
 /* 통계 */
 .stats-kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.25rem}
 .kpi{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.1rem;position:relative;overflow:hidden}
@@ -231,7 +241,7 @@ mark{background:var(--yellow-mid);border-radius:2px;padding:0 1px;color:inherit}
   <!-- 상태 표시 -->
   <div class="status-bar loading" id="status-bar">
     <span class="status-dot"></span>
-    <span id="status-text">시트 연결 중...</span>
+    <span id="status-text">연결 중...</span>
     <button class="btn-sync" onclick="loadFromSheets()" id="sync-btn" style="display:none">새로고침</button>
   </div>
 
@@ -242,7 +252,9 @@ mark{background:var(--yellow-mid);border-radius:2px;padding:0 1px;color:inherit}
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0"><circle cx="6.5" cy="6.5" r="4" stroke="#8CA8BF" stroke-width="1.4"/><path d="M10 10l3 3" stroke="#8CA8BF" stroke-width="1.4" stroke-linecap="round"/></svg>
         <input class="search-input" id="search-input" placeholder="키워드로 검색 (문의 내용, 답변, 대학명)..." oninput="renderList()">
       </div>
-      <div class="filter-row" id="cat-filters"></div>
+      <div class="filter-row" id="cat-filters">
+        <button class="filter-reset" onclick="clearFilters()">전체</button>
+      </div>
     </div>
     <div class="faq-list" id="faq-list"></div>
   </div>
@@ -258,7 +270,11 @@ mark{background:var(--yellow-mid);border-radius:2px;padding:0 1px;color:inherit}
       </div>
       <div class="fg"><label>문의 내용</label><textarea id="f-question" placeholder="고객이 문의한 내용을 입력하세요" rows="3"></textarea></div>
       <div class="fg"><label>답변</label><textarea id="f-answer" placeholder="응대 답변을 입력하세요" rows="4"></textarea></div>
-      <div class="fg"><label>카테고리</label><select id="f-category"></select></div>
+      <div class="fg">
+        <label>카테고리 <span style="font-weight:400;color:var(--ink3)">(최대 3개)</span></label>
+        <div class="cat-check-grid" id="f-cat-grid"></div>
+        <div class="cat-limit-hint" id="f-cat-hint"></div>
+      </div>
       <div class="form-actions">
         <button class="btn-save" onclick="saveItem()">저장</button>
         <button class="btn-reset" onclick="resetForm()">초기화</button>
@@ -333,7 +349,7 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwhdld9Wvyn463gRH_IQ
 const LS_DATA = 'faq_v2';
 const LS_CATS = 'faq_cats_v2';
 
-let items = [], categories = [], activeCategory = '전체';
+let items = [], categories = [], activeCategories = new Set();
 let chatHistory = [], isLoading = false, chartPeriod = 6;
 let editingCatIdx = -1;
 let saveTimer = null;
@@ -342,7 +358,7 @@ let saveTimer = null;
 // Google Sheets 연동
 // ================================================================
 async function loadFromSheets() {
-  updateStatus('loading', '시트 연결 중...');
+  updateStatus('loading', '연결 중...');
   try {
     const res = await fetch(`${SCRIPT_URL}?action=getAll`);
     const json = await res.json();
@@ -350,17 +366,17 @@ async function loadFromSheets() {
       items = (json.data.items || []).map(normalizeItem);
       categories = json.data.categories || [];
       persistLocal();
-      updateStatus('connected', '시트 연결됨');
+      updateStatus('connected', '연결됨');
       renderFilters();
       renderList();
-      populateCategorySelect();
+      populateCategorySelect([]);
     } else {
       updateStatus('error', '오류: ' + json.error);
     }
   } catch(e) {
-    updateStatus('error', '시트 연결 실패');
+    updateStatus('error', '연결 실패');
     loadLocal();
-    renderFilters(); renderList(); populateCategorySelect();
+    renderFilters(); renderList(); populateCategorySelect([]);
   } finally {
     hideLoading();
   }
@@ -450,30 +466,58 @@ function hl(t, q) {
 // 검색 / 목록
 // ================================================================
 function renderFilters() {
-  document.getElementById('cat-filters').innerHTML = ['전체', ...categories].map(c =>
-    `<button class="chip${c === activeCategory ? ' active' : ''}" onclick="setCategory('${c.replace(/'/g, "\\'")}')">${c}</button>`
-  ).join('');
+  const row = document.getElementById('cat-filters');
+  const chips = categories.map(c => {
+    const on = activeCategories.has(c);
+    return `<button class="chip${on ? ' active' : ''}" onclick="toggleFilter('${c.replace(/'/g, "\\'")}')">${c}</button>`;
+  }).join('');
+  row.innerHTML = `<button class="filter-reset${activeCategories.size === 0 ? ' active' : ''}" onclick="clearFilters()">전체</button>` + chips;
 }
-function setCategory(c) { activeCategory = c; renderFilters(); renderList(); }
+
+function toggleFilter(c) {
+  if (activeCategories.has(c)) {
+    activeCategories.delete(c);
+  } else {
+    if (activeCategories.size >= 3) {
+      alert('카테고리 필터는 최대 3개까지 선택 가능합니다.');
+      return;
+    }
+    activeCategories.add(c);
+  }
+  renderFilters(); renderList();
+}
+
+function clearFilters() { activeCategories.clear(); renderFilters(); renderList(); }
+
+// 아이템의 카테고리 목록 파싱 (문자열 또는 배열)
+function getItemCats(item) {
+  if (Array.isArray(item.category)) return item.category;
+  if (typeof item.category === 'string') return item.category.split(',').map(s => s.trim()).filter(Boolean);
+  return [];
+}
 
 function renderList() {
   const q = (document.getElementById('search-input').value || '').trim();
   let f = items.filter(i => {
-    const mc = activeCategory === '전체' || i.category === activeCategory;
+    const cats = getItemCats(i);
+    const mc = activeCategories.size === 0 || cats.some(c => activeCategories.has(c));
     const unis = (i.logs || []).map(l => l.university).join(' ');
     return mc && (!q || (i.question + i.answer + unis).toLowerCase().includes(q.toLowerCase()));
   }).sort((a, b) => (b.logs || []).length - (a.logs || []).length);
 
   const el = document.getElementById('faq-list');
   if (!f.length) { el.innerHTML = `<div class="empty-state"><p>검색 결과가 없습니다</p></div>`; return; }
-  el.innerHTML = f.map(i => `
+  el.innerHTML = f.map(i => {
+    const cats = getItemCats(i);
+    const catBadges = cats.map(c => `<span class="m-cat">${c}</span>`).join('');
+    return `
     <div class="faq-card" id="card-${i.id}">
       <div class="faq-hd" onclick="toggleCard(${i.id})">
         <div class="expand-wrap"><span class="expand-icon">▶</span></div>
         <div style="flex:1">
           <div class="faq-q">${hl(i.question, q)}</div>
           <div class="faq-meta">
-            <span class="m-cat">${i.category}</span>
+            ${catBadges}
             <span class="m-freq">문의 ${(i.logs || []).length}회</span>
             <span class="m-date">${i.created}</span>
           </div>
@@ -502,7 +546,8 @@ function renderList() {
           <button class="btn-sm del" onclick="deleteItem(${i.id})">삭제</button>
         </div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function toggleCard(id) { document.getElementById('card-' + id).classList.toggle('open'); }
@@ -535,8 +580,6 @@ function editItem(id) {
   document.getElementById('f-university').value = '';
   document.getElementById('f-question').value = i.question;
   document.getElementById('f-answer').value = i.answer;
-  populateCategorySelect();
-  document.getElementById('f-category').value = i.category;
   document.getElementById('edit-id').value = i.id;
   document.getElementById('form-title').textContent = '문의 수정';
   switchTab('add');
@@ -545,40 +588,76 @@ function editItem(id) {
 // ================================================================
 // 문의 저장/수정
 // ================================================================
+function getSelectedCats() {
+  return [...document.querySelectorAll('#f-cat-grid .cat-check-item.checked')].map(el => el.dataset.cat);
+}
+
 function saveItem() {
   const q   = document.getElementById('f-question').value.trim();
   const a   = document.getElementById('f-answer').value.trim();
-  const cat = document.getElementById('f-category').value;
+  const cats = getSelectedCats();
   const date = normalizeDate(document.getElementById('f-date').value) || new Date().toISOString().slice(0, 10);
   const uni = document.getElementById('f-university').value.trim();
   const eid = document.getElementById('edit-id').value;
   if (!q || !a) { alert('문의 내용과 답변을 모두 입력해주세요.'); return; }
+  if (cats.length === 0) { alert('카테고리를 1개 이상 선택해주세요.'); return; }
+  const catStr = cats.join(',');
   if (eid) {
     const idx = items.findIndex(i => i.id == eid);
-    if (idx > -1) items[idx] = { ...items[idx], question: q, answer: a, category: cat, created: date };
+    if (idx > -1) items[idx] = { ...items[idx], question: q, answer: a, category: catStr, created: date };
   } else {
-    items.push({ id: Date.now(), question: q, answer: a, category: cat, logs: uni ? [{ date, university: uni }] : [], created: date });
+    items.push({ id: Date.now(), question: q, answer: a, category: catStr, logs: uni ? [{ date, university: uni }] : [], created: date });
   }
   scheduleSave(); resetForm(); switchTab('search');
 }
+
 function resetForm() {
   ['f-question', 'f-answer', 'f-university'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('f-date').value = new Date().toISOString().slice(0, 10);
   document.getElementById('edit-id').value = '';
   document.getElementById('form-title').textContent = '새 문의 등록';
-  populateCategorySelect();
-}
-function populateCategorySelect() {
-  const s = document.getElementById('f-category'); if (!s) return;
-  const cur = s.value;
-  s.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
-  if (categories.includes(cur)) s.value = cur;
+  populateCategorySelect([]);
 }
 
-// ================================================================
-// 카테고리 관리
-// ================================================================
-function catCount(name) { return items.filter(i => i.category === name).length; }
+function populateCategorySelect(selectedCats = []) {
+  const grid = document.getElementById('f-cat-grid');
+  const hint = document.getElementById('f-cat-hint');
+  if (!grid) return;
+  grid.innerHTML = categories.map(c => {
+    const on = selectedCats.includes(c);
+    return `<div class="cat-check-item${on ? ' checked' : ''}" data-cat="${c}" onclick="toggleCatCheck(this)">${c}</div>`;
+  }).join('');
+  updateCatHint();
+}
+
+function toggleCatCheck(el) {
+  const checked = document.querySelectorAll('#f-cat-grid .cat-check-item.checked');
+  if (!el.classList.contains('checked') && checked.length >= 3) {
+    alert('카테고리는 최대 3개까지 선택 가능합니다.');
+    return;
+  }
+  el.classList.toggle('checked');
+  updateCatHint();
+}
+
+function updateCatHint() {
+  const cnt = document.querySelectorAll('#f-cat-grid .cat-check-item.checked').length;
+  const hint = document.getElementById('f-cat-hint');
+  if (hint) hint.textContent = cnt > 0 ? `${cnt}개 선택됨 (최대 3개)` : '카테고리를 선택하세요';
+}
+
+function editItem(id) {
+  const i = items.find(x => x.id === id); if (!i) return;
+  document.getElementById('f-date').value = i.created || '';
+  document.getElementById('f-university').value = '';
+  document.getElementById('f-question').value = i.question;
+  document.getElementById('f-answer').value = i.answer;
+  const selectedCats = getItemCats(i);
+  populateCategorySelect(selectedCats);
+  document.getElementById('edit-id').value = i.id;
+  document.getElementById('form-title').textContent = '문의 수정';
+  switchTab('add');
+}
 function renderCatManage() {
   editingCatIdx = -1;
   document.getElementById('cat-tbody').innerHTML = categories.map((c, i) => `
@@ -590,7 +669,7 @@ function renderCatManage() {
             onkeydown="if(event.key==='Enter')saveEditCat(${i});if(event.key==='Escape')cancelEditCat(${i})">
         </div>
       </td>
-      <td style="text-align:center"><span class="cat-count-num">${catCount(c)}</span></td>
+      <td style="text-align:center"><span class="cat-count-num">${items.filter(it => getItemCats(it).includes(c)).length}</span></td>
       <td>
         <div style="display:flex;gap:6px;justify-content:flex-end">
           <button class="cat-edit-btn" id="cat-edit-btn-${i}" onclick="startEditCat(${i})">수정</button>
@@ -625,9 +704,13 @@ function saveEditCat(idx) {
   if (newName !== categories[idx] && categories.includes(newName)) { alert('이미 존재하는 카테고리명입니다.'); return; }
   const oldName = categories[idx];
   categories[idx] = newName;
-  items.forEach(i => { if (i.category === oldName) i.category = newName; });
-  if (activeCategory === oldName) activeCategory = newName;
-  scheduleSave(); renderCatManage(); renderFilters(); populateCategorySelect();
+  items.forEach(i => {
+    const cats = getItemCats(i);
+    const pos = cats.indexOf(oldName);
+    if (pos > -1) { cats[pos] = newName; i.category = cats.join(','); }
+  });
+  if (activeCategories.has(oldName)) { activeCategories.delete(oldName); activeCategories.add(newName); }
+  scheduleSave(); renderCatManage(); renderFilters(); populateCategorySelect([]);
   editingCatIdx = -1;
 }
 function addCategory() {
@@ -635,13 +718,14 @@ function addCategory() {
   if (!v) return;
   if (categories.includes(v)) { alert('이미 존재합니다.'); return; }
   categories.push(v); inp.value = '';
-  scheduleSave(); renderCatManage(); renderFilters(); populateCategorySelect();
+  scheduleSave(); renderCatManage(); renderFilters(); populateCategorySelect([]);
 }
 function deleteCategory(idx) {
   const cat = categories[idx];
-  if (items.some(i => i.category === cat) && !confirm(`"${cat}" 카테고리 사용 중인 문의가 있습니다. 삭제하시겠습니까?`)) return;
+  if (items.some(i => getItemCats(i).includes(cat)) && !confirm(`"${cat}" 카테고리 사용 중인 문의가 있습니다. 삭제하시겠습니까?`)) return;
   categories.splice(idx, 1);
-  scheduleSave(); renderCatManage(); renderFilters(); populateCategorySelect();
+  activeCategories.delete(cat);
+  scheduleSave(); renderCatManage(); renderFilters(); populateCategorySelect([]);
 }
 
 // ================================================================
@@ -684,7 +768,10 @@ function renderMonthChart() {
 }
 function renderCatBars() {
   const allLogs = items.flatMap(i => i.logs || []);
-  const cm = {}; items.forEach(i => { cm[i.category] = (cm[i.category] || 0) + (i.logs || []).length; });
+  const cm = {};
+  items.forEach(i => {
+    getItemCats(i).forEach(c => { cm[c] = (cm[c] || 0) + (i.logs || []).length; });
+  });
   const sorted = Object.entries(cm).sort((a, b) => b[1] - a[1]); const mv = sorted[0]?.[1] || 1; const total = allLogs.length || 1;
   document.getElementById('cat-stats-sub').textContent = `총 ${allLogs.length}건`;
   document.getElementById('cat-stats-bars').innerHTML = sorted.map(([cat, cnt]) => `
@@ -696,7 +783,7 @@ function renderCatBars() {
 function renderTimeline() {
   const allEntries = [];
   items.forEach(item => (item.logs || []).forEach(log => {
-    if (log.date) allEntries.push({ date: log.date, university: log.university || '-', category: item.category, question: item.question });
+    if (log.date) allEntries.push({ date: log.date, university: log.university || '-', category: getItemCats(item).join(', '), question: item.question });
   }));
   allEntries.sort((a, b) => b.date.localeCompare(a.date));
   const recent = allEntries.slice(0, 15);
@@ -766,7 +853,7 @@ function switchTab(tab) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + tab).classList.add('active');
   if (tab === 'search') { renderFilters(); renderList(); }
-  if (tab === 'add') { populateCategorySelect(); if (!document.getElementById('f-date').value) document.getElementById('f-date').value = new Date().toISOString().slice(0, 10); }
+  if (tab === 'add') { populateCategorySelect([]); if (!document.getElementById('f-date').value) document.getElementById('f-date').value = new Date().toISOString().slice(0, 10); }
   if (tab === 'cats') renderCatManage();
   if (tab === 'stats') renderStats();
   if (tab === 'chat') setTimeout(() => document.getElementById('chat-input').focus(), 100);
@@ -779,7 +866,7 @@ function switchTab(tab) {
   loadLocal();
   loadFromSheets();
   document.getElementById('f-date').value = new Date().toISOString().slice(0, 10);
-  renderFilters(); renderList(); populateCategorySelect();
+  renderFilters(); renderList(); populateCategorySelect([]);
 })();
 </script>
 </body>
