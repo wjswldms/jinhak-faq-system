@@ -428,7 +428,7 @@ mark{background:var(--yellow-mid);border-radius:2px;padding:0 1px;color:inherit}
 // ================================================================
 // 설정
 // ================================================================
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby6pI9XSla6jXQrP_cZtO_cl23rRrlZHyiZ2E2CdGR1N9ggzslip7TYDifX2JCRfpUOFg/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwhdld9Wvyn463gRH_IQq1YDlK4gZ8CQ1SO7cgw5zspQeu0RLlPzl3FNNAvDHlWnxYwwA/exec';
 const LS_DATA = 'faq_v2';
 const LS_CATS = 'faq_cats_v2';
 
@@ -578,11 +578,10 @@ async function loadFromSheets() {
 
 async function saveToSheets() {
   try {
-    const res = await fetch(SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'saveAll', items, categories })
-    });
+    const itemsEnc = encodeURIComponent(JSON.stringify(items));
+    const catsEnc  = encodeURIComponent(JSON.stringify(categories));
+    const url = `${SCRIPT_URL}?action=save&items=${itemsEnc}&cats=${catsEnc}`;
+    const res = await fetch(url);
     const json = await res.json();
     if (!json.ok) console.error('저장 실패:', json.error);
   } catch(e) {
